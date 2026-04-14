@@ -1,0 +1,35 @@
+# shellcheck shell=bash disable=2086
+
+# Works for bash, fish and zsh.
+
+# bash
+test -n "$BASH_VERSION" && eval '
+NONO_CLAUDE_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
+PATH=$NONO_CLAUDE_ROOT/bin:$PATH
+NONO_CLAUDE_SHELL=bash
+export PATH NONO_CLAUDE_ROOT NONO_CLAUDE_SHELL
+return
+'
+
+# fish
+test -n "$FISH_VERSION" && eval '
+set NONO_CLAUDE_ROOT (cd (dirname (status filename)) && pwd -P)
+set PATH $NONO_CLAUDE_ROOT/bin:$PATH
+set -gx NONO_CLAUDE_SHELL fish
+export PATH NONO_CLAUDE_ROOT NONO_CLAUDE_SHELL
+exit
+'
+
+# zsh
+test -n "$ZSH_VERSION" && eval '
+NONO_CLAUDE_ROOT=$(cd "$(dirname "$0")" && pwd -P)
+PATH=$NONO_CLAUDE_ROOT/bin:$NONO_CLAUDE_ROOT/local/bin:$PATH
+NONO_CLAUDE_SHELL=zsh
+export PATH NONO_CLAUDE_ROOT NONO_CLAUDE_SHELL
+return
+'
+
+echo "ERROR: nono-claude/.rc is not set up to work for shell '$0'"
+false
+
+# vim: ft=sh:

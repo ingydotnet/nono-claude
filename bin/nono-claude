@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+main() (
+  setup "$@"
+  if $update; then
+    do-update
+    exit
+  fi
+  if $config; then
+    do-config
+    exit
+  fi
+
+  set-options
+
+  make -f "$root/Makefile" claude-nono
+)
+
+setup() {
+  [[ ${NONO_CLAUDE_ROOT-} ]] ||
+    die "NONO_CLAUDE_ROOT not set" \
+        "Try: source /path/to/nono-claude/.rc"
+
+  makefile=$NONO_CLAUDE_ROOT/Makefile
+  [[ -e $makefile ]] ||
+    die "NONO_CLAUDE_ROOT='$NONO_CLAUDE_ROOT' is broken"
+
+  [[ $PWD != "$HOME" ]] ||
+    die "Don't run nono-claude in your HOME directory"
+
+  root=$NONO_CLAUDE_ROOT
+  share=$root/share
+  base=$(pwd -P)
+  args=()
+  update=false
+  config=false
+
+  local arg
+  for arg; do
+    if [[ $arg == --update ]]; then
+      update=true
+    elif [[ $arg == --config ]]; then
+      config=true
+    else
+      args+=("$arg")
+    fi
+  done
+
+  opts_dir=$root/config/${base#/}
+  claude_md_file=$opts_dir/CLAUDE.md
+  claude_md_link=$base/CLAUDE.md
+
+  nono_opts_file=$opts_dir/NONO-OPTS.txt
+  nono_opts_link=$base/NONO-OPTS.txt
+  nono_opts_default=$root/share/NONO-OPTS.txt
+}
+
+set-options() {
+  export NONO_CLAUDE_OPTS_CLAUDE=${args[*]}
+
+  [[ -e $root/NONO-GLOBAL-OPTS.txt ]] ||
+    cp "$share/NONO-GLOBAL-OPTS.txt" \
+       "$root/NONO-GLOBAL-OPTS.txt"
+
+  NONO_CLAUDE_OPTS_NONO=$(xargs <<<"
+    --read "$root"
+    --allow "$opts_dir"
+    $(grep -v '^#' "$root/NONO-GLOBAL-OPTS.txt")
+  ")
+
+  opts=$root/config/${base#/}/NONO-OPTS.txt
+  if [[ -e $opts ]]; then
+    NONO_CLAUDE_OPTS_NONO=$(xargs <<<"
+      $NONO_CLAUDE_OPTS_NONO
+      $(grep -v '^#' $opts)
+    ")
+  fi
+
+  export NONO_CLAUDE_OPTS_NONO
+}
+
+do-update() (
+  set -x
+  git -C "$root" pull
+  rm -fr "$root/makes"
+  rm -fr "$root/local"
+)
+
+do-config() (
+  if [[ ! -f "$nono_opts_file" ]]; then
+    [[ -d $opts_dir ]] || run mkdir -p "$opts_dir"
+    run cp "$nono_opts_default" "$nono_opts_file"
+  fi
+  run ln -fs "$nono_opts_file" "$nono_opts_link"
+
+  if [[ -f $claude_md_link && ! -L $claude_md_link ]]; then
+    if ! git ls-files --error-unmatch "$claude_md_link" &>/dev/null; then
+      [[ -d $opts_dir ]] || run mkdir -p "$opts_dir"
+      run mv "$claude_md_link" "$claude_md_file"
+      run ln -fs "$claude_md_file" "$claude_md_link"
+    fi
+  fi
+)
+
+run() ( set -x; "$@" )
+
+die() { printf "%s\n" Error: "$@" >&2; exit 1; }
+
+main "$@"
