@@ -8,8 +8,15 @@ main() (
     do-update
     exit
   fi
+
+  init-config
+
   if $config; then
     do-config
+    exit
+  fi
+  if $claude_md; then
+    do-claude-md
     exit
   fi
 
@@ -36,6 +43,7 @@ setup() {
   args=()
   update=false
   config=false
+  claude_md=false
 
   local arg
   for arg; do
@@ -43,6 +51,8 @@ setup() {
       update=true
     elif [[ $arg == --config ]]; then
       config=true
+    elif [[ $arg == --claude-md ]]; then
+      claude_md=true
     else
       args+=("$arg")
     fi
@@ -53,21 +63,24 @@ setup() {
   claude_md_link=$base/CLAUDE.md
 
   nono_opts_file=$opts_dir/NONO-OPTS.txt
-  nono_opts_link=$base/NONO-OPTS.txt
-  nono_opts_default=$root/share/NONO-OPTS.txt
+  nono_mk_file=$opts_dir/NONO.mk
 }
 
 set-options() {
   export NONO_CLAUDE_OPTS_CLAUDE=${args[*]}
 
-  [[ -e $root/NONO-GLOBAL-OPTS.txt ]] ||
+  [[ -e $root/NONO-OPTS.txt ]] ||
     cp "$share/NONO-GLOBAL-OPTS.txt" \
-       "$root/NONO-GLOBAL-OPTS.txt"
+       "$root/NONO-OPTS.txt"
+
+  [[ -e $root/NONO.mk ]] ||
+    cp "$share/NONO-GLOBAL.mk" \
+       "$root/NONO.mk"
 
   NONO_CLAUDE_OPTS_NONO=$(xargs <<<"
     --read "$root"
     --allow "$opts_dir"
-    $(grep -v '^#' "$root/NONO-GLOBAL-OPTS.txt")
+    $(grep -v '^#' "$root/NONO-OPTS.txt")
   ")
 
   opts=$root/config/${base#/}/NONO-OPTS.txt
@@ -88,16 +101,26 @@ do-update() (
   rm -fr "$root/local"
 )
 
-do-config() (
-  if [[ ! -f "$nono_opts_file" ]]; then
-    [[ -d $opts_dir ]] || run mkdir -p "$opts_dir"
-    run cp "$nono_opts_default" "$nono_opts_file"
-  fi
-  run ln -fs "$nono_opts_file" "$nono_opts_link"
+init-config() {
+  [[ -d $opts_dir ]] || mkdir -p "$opts_dir"
 
+  if [[ ! -f "$nono_opts_file" ]]; then
+    cp "$share/NONO-OPTS.txt" "$nono_opts_file"
+  fi
+
+  if [[ ! -f "$nono_mk_file" ]]; then
+    cp "$share/NONO.mk" "$nono_mk_file"
+  fi
+}
+
+do-config() (
+  echo "$nono_opts_file"
+  echo "$nono_mk_file"
+)
+
+do-claude-md() (
   if [[ -f $claude_md_link && ! -L $claude_md_link ]]; then
     if ! git ls-files --error-unmatch "$claude_md_link" &>/dev/null; then
-      [[ -d $opts_dir ]] || run mkdir -p "$opts_dir"
       run mv "$claude_md_link" "$claude_md_file"
       run ln -fs "$claude_md_file" "$claude_md_link"
     fi

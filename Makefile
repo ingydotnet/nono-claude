@@ -5,6 +5,13 @@ $(shell [ -d $M ] || (git clone -q https://github.com/makeplus/makes $M))
 
 include $M/init.mk
 include $M/claude.mk
+
+NONO-GLOBAL-MK := $(NONO_CLAUDE_ROOT)/NONO.mk
+-include $(NONO-GLOBAL-MK)
+
+NONO-MK := $(NONO_CLAUDE_ROOT)/config/$(CURDIR)/NONO.mk
+-include $(NONO-MK)
+
 include $M/shell.mk
 include $M/clean.mk
 
