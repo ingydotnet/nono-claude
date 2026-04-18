@@ -39,7 +39,9 @@ setup() {
 
   root=$NONO_CLAUDE_ROOT
   share=$root/share
-  base=$(pwd -P)
+  cwd=$(pwd -P)
+  base=$(get-project-base)
+  export NONO_CLAUDE_BASE=$base
   args=()
   update=false
   config=false
@@ -62,7 +64,7 @@ setup() {
   [[ -d $config_dir ]] || mkdir -p "$config_dir"
 
   claude_md_file=$config_dir/CLAUDE.md
-  claude_md_link=$base/CLAUDE.md
+  claude_md_link=$cwd/CLAUDE.md
 
   nono_mk_file=$config_dir/NONO.mk
 
@@ -89,8 +91,30 @@ do-claude-md() (
   fi
 )
 
+get-project-base() {
+  local common bare
+  if ! common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
+    pwd -P
+    return
+  fi
+  # Non-bare repos always have common dir named `.git` (inside the
+  # project). A bare repo is its own project dir. Check `core.bare` as
+  # the primary signal — `git rev-parse --is-bare-repository` answers
+  # for the current worktree, which is always false from a linked
+  # worktree of a bare repo — and fall back to the basename heuristic
+  # for bare repos missing the setting.
+  bare=$(git config --file="$common/config" --get core.bare 2>/dev/null || true)
+  if [[ $bare == true || $(basename "$common") != .git ]]; then
+    echo "$common"
+  else
+    (cd "$common/.." && pwd -P)
+  fi
+}
+
 run() ( set -x; "$@" )
 
 die() { printf "%s\n" Error: "$@" >&2; exit 1; }
 
-main "$@"
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+  main "$@"
+fi
