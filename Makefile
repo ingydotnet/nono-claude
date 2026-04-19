@@ -13,8 +13,22 @@ NONO_CLAUDE_BASE ?= $(CURDIR)
 NONO-PROJECT-MK := $(NONO_CLAUDE_ROOT)/config$(NONO_CLAUDE_BASE)/NONO.mk
 -include $(NONO-PROJECT-MK)
 
+CLAUDE-OPTS += $(NONO_CLAUDE_OPTS_CLAUDE)
+CLAUDE-NONO-OPTS += $(NONO_CLAUDE_OPTS_NONO)
+
+include $M/perl.mk
+include $M/bpan.mk
+include $M/shellcheck.mk
 include $M/shell.mk
 include $M/clean.mk
 
-CLAUDE-OPTS += $(NONO_CLAUDE_OPTS_CLAUDE)
-CLAUDE-NONO-OPTS += $(NONO_CLAUDE_OPTS_NONO)
+MAKES-REALCLEAN += local makes
+
+test ?= test/*.t
+v ?=
+
+unexport PERL5OPT PERL5LIB
+
+
+test: $(PERL) $(BPAN) $(SHELLCHECK)
+	prove$(if $(v), -v,) $(test)

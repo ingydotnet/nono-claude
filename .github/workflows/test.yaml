@@ -11,4 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v6.0.2
-    - run: bash test/worktree-base.sh
+    - run: |
+        export NONO_CLAUDE_ROOT=$PWD
+        make test v=1
