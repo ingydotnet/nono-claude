@@ -9,8 +9,8 @@ include $M/claude.mk
 NONO-GLOBAL-MK := $(NONO_CLAUDE_ROOT)/NONO.mk
 -include $(NONO-GLOBAL-MK)
 
-NONO-MK := $(NONO_CLAUDE_ROOT)/config/$(CURDIR)/NONO.mk
--include $(NONO-MK)
+NONO-PROJECT-MK := $(NONO_CLAUDE_ROOT)/config/$(CURDIR)/NONO.mk
+-include $(NONO-PROJECT-MK)
 
 include $M/shell.mk
 include $M/clean.mk
