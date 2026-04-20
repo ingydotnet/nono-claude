@@ -60,7 +60,7 @@ is "$actual" "$main_wt" \
 # must agree and must use the main worktree's path.
 fake_root=$tmp/nono-root
 mkdir -p "$fake_root/share"
-cp "$ROOT/share/NONO.mk" "$fake_root/share/"
+cp "$ROOT/share/nono.yaml" "$fake_root/share/"
 touch "$fake_root/Makefile"
 export NONO_CLAUDE_ROOT=$fake_root
 

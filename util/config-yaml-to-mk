@@ -1,0 +1,89 @@
+#!/usr/bin/env ys-0
+
+defn main(global-yaml project-yaml):
+  write 'config.mk':
+    str:
+      when fs-e(global-yaml): yaml-to-mk(global-yaml)
+      when fs-e(project-yaml): yaml-to-mk(project-yaml)
+
+defn yaml-to-mk(file):
+  data =: file:read:yaml/load
+  join "\n\n":
+    remove falsey?:
+      list:
+        mk-makefile(data)
+        mk-browser(data)
+        mk-makes(data)
+        mk-path(data)
+        mk-env(data)
+        mk-nono-opts(data)
+
+defn mk-makefile(data):
+  data.makefile
+
+defn mk-browser(data):
+  browser =: data.browser
+  cond:
+    browser == 'google-chrome':: |-
+      GOOGLE-CHROME := /tmp/claude-$(shell id -u)/google-chrome
+      _ := \
+      $(shell \
+        mkdir -p $(dir $(GOOGLE-CHROME)) && \
+        ( \
+          echo '#!/bin/bash'; \
+          echo 'exec /usr/bin/google-chrome --no-sandbox --disable-dev-shm-usage "$$@"' \
+        ) > $(GOOGLE-CHROME) \
+          && chmod +x $(GOOGLE-CHROME) \
+      )
+      export BROWSER := $(GOOGLE-CHROME)
+
+defn mk-makes(data):
+  when data.makes:
+    reduce _ '' data.makes:
+      fn(o name):
+        o + "include \\$(MAKES)/$name.mk\n"
+
+defn mk-path(data):
+  p =: get(data 'path')
+  when p && p.prepend:
+    "override PATH := $(p.prepend.join(':')):\\$(PATH)\nexport PATH"
+
+defn mk-env(data):
+  when data.env:
+    reduce _ '' data.env:
+      fn(o entry):
+        o + "export $(key entry) := $(val entry)\n"
+
+defn mk-nono-opts(data):
+  str:
+    mk-dirs(data)
+    mk-files(data)
+    mk-net(data)
+
+defn mk-dirs(data):
+  when data.dirs:
+    mk-flag-list(data.dirs.read-write '--allow') +
+    mk-flag-list(data.dirs.read-only '--read')
+
+defn mk-files(data):
+  when data.files:
+    mk-flag-list: data.files.read-only '--read-file'
+
+defn mk-net(data):
+  when data.net:
+    mk-net-inner: data.net
+
+defn mk-net-inner(net):
+  mk-flag-list(net.domains '--allow-domain') +
+  mk-net-ports(net.ports)
+
+defn mk-net-ports(ports):
+  when ports:
+    mk-flag-list(ports.listen '--listen-port') +
+    mk-flag-list(ports.open '--open-port')
+
+defn mk-flag-list(vals flag):
+  when vals:
+    reduce _ '' vals:
+      fn(o val):
+        o + "CLAUDE-NONO-OPTS += $flag $val\n"

@@ -1,0 +1,42 @@
+# nono-claude config file
+
+# browser: google-chrome
+
+# See https://github.com/makeplus/makes for available modules.
+# makes:
+# - node
+# - perl
+# - python
+
+# files:
+#   read-only:
+#   - ~/.npmrc
+#   - ~/.pip/pip.conf
+#   read-write:
+
+# dirs:
+#   read-only:
+#   - ~/.local/lib
+#   read-write:
+#   - node_modules
+
+# net:
+#   domains:
+#   - registry.npmjs.org
+#   - pypi.org
+#   - crates.io
+#   ports:
+#     listen:
+#     - 3000
+#     open:
+#     - 5173
+
+# env:
+#   SOME_VAR: some-value
+
+# path:
+#   prepend:
+#   - /usr/bin
+
+# makefile: |
+#   CUSTOM-VAR := value

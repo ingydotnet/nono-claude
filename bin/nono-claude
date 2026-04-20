@@ -5,22 +5,24 @@ set -euo pipefail
 main() (
   setup "$@"
 
-  if $update; then
-    do-update
-    exit
-  fi
+  for arg; do
+    if [[ $arg == --update ]]; then
+      do-update
+      exit
+    elif [[ $arg == --config ]]; then
+      run "${EDITOR:-vim}" "$project_config"
+      exit
+    elif [[ $arg == --claude-md ]]; then
+      do-claude-md
+      exit
+    fi
+  done
 
-  if $config; then
-    run "${EDITOR:-vim}" "$nono_mk_file"
-    exit
-  fi
+  export NONO_CLAUDE_OPTS_CLAUDE=$*
 
-  if $claude_md; then
-    do-claude-md
-    exit
-  fi
-
-  export NONO_CLAUDE_OPTS_CLAUDE=${args[*]}
+  ys=$(make -f "$root/Makefile" ys)
+  "$ys" -x "$root/util/config-yaml-to-mk" \
+    "$global_config" "$project_config" > config.mk
 
   make -f "$root/Makefile" claude-nono
 )
@@ -42,37 +44,23 @@ setup() {
   cwd=$(pwd -P)
   base=$(get-project-base)
   export NONO_CLAUDE_BASE=$base
-  args=()
-  update=false
-  config=false
-  claude_md=false
 
-  local arg
-  for arg; do
-    if [[ $arg == --update ]]; then
-      update=true
-    elif [[ $arg == --config ]]; then
-      config=true
-    elif [[ $arg == --claude-md ]]; then
-      claude_md=true
-    else
-      args+=("$arg")
-    fi
-  done
+  project_config_dir=$root/config/${base#/}
+  [[ -d $project_config_dir ]] ||
+    mkdir -p "$project_config_dir"
 
-  config_dir=$root/config/${base#/}
-  [[ -d $config_dir ]] || mkdir -p "$config_dir"
-
-  claude_md_file=$config_dir/CLAUDE.md
+  claude_md_file=$project_config_dir/CLAUDE.md
   claude_md_link=$cwd/CLAUDE.md
 
-  nono_mk_file=$config_dir/NONO.mk
+  template_config=$share/config.yaml
+  global_config=$root/config.yaml
+  project_config=$project_config_dir/config.yaml
 
-  [[ -e $nono_mk_file ]] ||
-    cp "$share/NONO.mk" "$nono_mk_file"
+  [[ -e $project_config ]] ||
+    cp "$template_config" "$project_config"
 
-  [[ -e $root/NONO.mk ]] ||
-    cp "$share/NONO.mk" "$root/NONO.mk"
+  [[ -e $global_config ]] ||
+    cp "$template_config" "$global_config"
 }
 
 do-update() (
@@ -91,8 +79,7 @@ do-claude-md() (
   fi
 )
 
-get-project-base() {
-  local common bare
+get-project-base() (
   if ! common=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null); then
     pwd -P
     return
@@ -109,7 +96,7 @@ get-project-base() {
   else
     (cd "$common/.." && pwd -P)
   fi
-}
+)
 
 run() ( set -x; "$@" )
 

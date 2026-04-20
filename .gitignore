@@ -1,6 +1,6 @@
-/NONO-OPTS.txt
-/NONO.mk
 /config/
 /local/
 /makes/
 /nono/
+/config.yaml
+/config.mk
