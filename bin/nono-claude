@@ -20,8 +20,9 @@ main() (
 
   export NONO_CLAUDE_OPTS_CLAUDE=$*
 
+  make -f "$root/Makefile" ys
   ys=$(make -f "$root/Makefile" ys)
-  "$ys" -x "$root/util/config-yaml-to-mk" \
+  "$ys" "$root/util/config-yaml-to-mk" \
     "$global_config" "$project_config" > config.mk
 
   make -f "$root/Makefile" claude-nono
